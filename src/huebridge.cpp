@@ -1,9 +1,8 @@
-#include "huebridge.h"
-
+#include "huebridge.hpp"
 #include <sstream>
 
-#include "json_serialicer.h"
-#include "jsonnavi.h"
+#include "json_serialicer.hpp"
+#include "jsonnavi.hpp"
 
 HueBridge::HueBridge(const std::string ip)
 {
@@ -53,7 +52,7 @@ bool HueBridge::setTokenFromBridge(){
     json.addMember("devicetype", "HUE_CLIENT");
     createGetToken();
     HttpResponse response = client.post(pathBuffer.str(), json.asClass());
-    if(!response.succeded()){
+    if(!response.succeeded()){
         return false;
     }
     JsonNavi responseParser{response.message};
@@ -68,7 +67,7 @@ bool HueBridge::setTokenFromBridge(){
 int HueBridge::getBulbCount(){
     createGetAll();
     HttpResponse response = getSomeThing();
-    if(response.succeded()){
+    if(response.succeeded()){
         JsonNavi parser{response.message};
         return parser.headerNumber();
     }
@@ -81,7 +80,7 @@ TextFrame HueBridge::getBulbJson(int bulbId){
     HttpResponse response = getSomeThing();
     printf("bulbResponse: %s\n", response.message.c_str());
     printf("was bulb Response errorCode %d\n", response.statusCode());
-    if(response.succeded()){
+    if(response.succeeded()){
         JsonNavi parser{response.message};
         printf("getting Json");
         return parser.jsonFromHeader("state");
@@ -89,27 +88,27 @@ TextFrame HueBridge::getBulbJson(int bulbId){
     return TextFrame(NULL, 0);
 }
 
-bool HueBridge::isSomeThing(int bulbId, const std::string& someThing, bool* succeded){
+bool HueBridge::isSomeThing(int bulbId, const std::string& someThing, bool* succeeded){
     JsonNavi parser{getBulbJson(bulbId)};
-    return parser.boolFromHeader(someThing, succeded);
+    return parser.boolFromHeader(someThing, succeeded);
 }
 
-bool HueBridge::isOn(int bulbId, bool* succeded){
-    return isSomeThing(bulbId, HueBridge::ON_KEY, succeded);
+bool HueBridge::isOn(int bulbId, bool* succeeded){
+    return isSomeThing(bulbId, HueBridge::ON_KEY, succeeded);
 }
 
-bool HueBridge::isReachable(int bulbId, bool* succeded){
-    return isSomeThing(bulbId, HueBridge::REACHABLE_KEY, succeded);
+bool HueBridge::isReachable(int bulbId, bool* succeeded){
+    return isSomeThing(bulbId, HueBridge::REACHABLE_KEY, succeeded);
 }
 
 
-int HueBridge::getBrightness(int bulbId, bool* succeded){
+int HueBridge::getBrightness(int bulbId, bool* succeeded){
     JsonNavi parser{getBulbJson(bulbId)};
-    return parser.longFromHeader(HueBridge::BRIGHTNESS_KEY, succeded);
+    return parser.longFromHeader(HueBridge::BRIGHTNESS_KEY, succeeded);
 }
 
-BuilbState HueBridge::getState(int bulbId, bool* succeded){
-    BuilbState state;
+BulbState HueBridge::getState(int bulbId, bool* succeeded){
+    BulbState state;
     JsonNavi parser{getBulbJson(bulbId)};
     bool working = false;
     do{
@@ -130,8 +129,8 @@ BuilbState HueBridge::getState(int bulbId, bool* succeded){
             break;
         }
     }while(false);
-    if(succeded){
-        *succeded = working;
+    if(succeeded){
+        *succeeded = working;
     }
     return state;
 }
@@ -139,7 +138,7 @@ BuilbState HueBridge::getState(int bulbId, bool* succeded){
 bool HueBridge::setSomeThing(int bulbId, const std::string& json){
     createPut(bulbId);
     HttpResponse response = client.put(pathBuffer.str(), json);
-    if(!response.succeded()){
+    if(!response.succeeded()){
         return false;
     }
 
@@ -154,7 +153,7 @@ bool HueBridge::setState(int bulbId, bool state){
 
 }
 
-bool HueBridge::setState(int bulbId, const BuilbState& state){
+bool HueBridge::setState(int bulbId, const BulbState& state){
     //{"on":true, "sat":254, "bri":254,"hue":10000}
     JsonSerializer json;
     json.addBoolMember(HueBridge::ON_KEY, state.isOn);

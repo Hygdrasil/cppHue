@@ -1,4 +1,4 @@
-#include "simplehttpclient.h"
+#include "simplehttpclient.hpp"
 #include <sstream>
 #include <map>
 
@@ -20,7 +20,7 @@ const std::string SimpleHttpClient::protocol = "HTTP/1.0";
 const std::string SimpleHttpClient::newLine = "\r\n";
 const std::string SimpleHttpClient::acceptTypes = "Accept: */*";
 
-bool HttpResponse::succeded() const{
+bool HttpResponse::succeeded() const{
     return state == HttpResponse::OK
             && statusCode() == 200;
 }
@@ -51,6 +51,11 @@ unsigned int HttpResponse::statusCode() const{
 
 SimpleHttpClient::SimpleHttpClient()
 {
+}
+SimpleHttpClient::~SimpleHttpClient(){
+    if(serverId != 0){
+        close(serverId);
+    }
 }
 
 HttpResponse::ConnectionState SimpleHttpClient::connectToIp(const std::string& ip, int port){

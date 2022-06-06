@@ -6,7 +6,7 @@ struct HttpResponse{
     enum ConnectionState {OK, EMPTY, NO_CONNECTION};
     ConnectionState state;
     std::string message;
-    bool succeded() const;
+    bool succeeded() const;
     unsigned int statusCode() const;
 
 };
@@ -16,6 +16,7 @@ class SimpleHttpClient
 public:
     enum RequestTyp {GET, POST, PUT};
     SimpleHttpClient();
+    ~SimpleHttpClient();
     HttpResponse::ConnectionState connectToIp(const std::string& ip, int port);
     HttpResponse get(const std::string& path, const std::string& message = "") const;
     HttpResponse post(const std::string& path, const std::string& message = "") const;

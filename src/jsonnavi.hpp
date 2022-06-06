@@ -23,9 +23,9 @@ public:
     TextFrame jsonFromHeader(const std::string& header) const;
     TextFrame textFromHeader(const std::string& header) const;
 
-    bool boolFromHeader(const std::string& header, bool* succeded) const;
-    long longFromHeader(const std::string& header, bool* succeded) const;
-    double doubleFromHeader(const std::string& header, bool* succeded) const;
+    bool boolFromHeader(const std::string& header, bool* succeeded) const;
+    long longFromHeader(const std::string& header, bool* succeeded) const;
+    double doubleFromHeader(const std::string& header, bool* succeeded) const;
 
     TextFrame findHeader(const std::string& header)const;
     const char* getContendStart(const std::string& header) const;

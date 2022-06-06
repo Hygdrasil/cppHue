@@ -1,4 +1,4 @@
-#include "jsonnavi.h"
+#include "jsonnavi.hpp"
 #include <cstring>
 #include <cstdlib>
 #include <assert.h>
@@ -55,7 +55,9 @@ const char* findString(TextFrame frame, const std::string& string){
     if(frame.size < string.size()){
         return NULL;
     }
-    for(unsigned int i = 0; i< frame.size-string.size(); i++){
+    printf("%d\n", string.size());
+    for(unsigned int i = 0; i< frame.size-string.size()-1; i++){
+        printf("%d\n", i);
         if(0 == memcmp(frame.frameStart+i,string.c_str(),string.size())){
             return frame.frameStart+i;
         }
@@ -65,10 +67,17 @@ const char* findString(TextFrame frame, const std::string& string){
 }
 
 TextFrame JsonNavi::findHeader(const std::string& header) const{
-    TextFrame remaining{json.frameStart+1, json.size-2};
+    if(json.frameStart == NULL){
+        return json;
+    }
+    TextFrame remaining{json.frameStart+1, json.size-3};
     const char * index;
     do{
         index = findString(remaining, header);
+        printf("test");
+        if(index == NULL){
+            return TextFrame(NULL, 0);
+        }
         if(*(index-1) == '"' && *(index+header.size())== '"' && *(index+header.size()+1)== ':'){
             return TextFrame(index-1, header.size()+3);
         }
@@ -195,17 +204,17 @@ TextFrame JsonNavi::textFromHeader(const std::string& header) const{
     return result;
 }
 
-bool JsonNavi::boolFromHeader(const std::string& header, bool* succeded) const{
+bool JsonNavi::boolFromHeader(const std::string& header, bool* succeeded) const{
      TextFrame buffer = textFromHeader(header);
      if(buffer.frameStart == NULL){
-         if(succeded){
-             *succeded = false;
+         if(succeeded){
+             *succeeded = false;
              return false;
          }
      }
      else{
-         if(succeded){
-             *succeded = true;
+         if(succeeded){
+             *succeeded = true;
          }
      }
     const char* jsonTrue = "true";
@@ -216,65 +225,65 @@ bool JsonNavi::boolFromHeader(const std::string& header, bool* succeded) const{
     if(memcmp(buffer.frameStart, jsonFalse,  strlen(jsonFalse)) == 0){
         return false;
     }
-    if(succeded){
-     *succeded = false;
+    if(succeeded){
+     *succeeded = false;
     }
     return false;
 
 }
 
-long JsonNavi::longFromHeader(const std::string& header, bool* succeded) const{
+long JsonNavi::longFromHeader(const std::string& header, bool* succeeded) const{
     TextFrame buffer = textFromHeader(header);
     if(buffer.frameStart == NULL){
-        if(succeded){
-            *succeded = false;
+        if(succeeded){
+            *succeeded = false;
             return false;
         }
     }
     else{
-        if(succeded){
-            *succeded = true;
+        if(succeeded){
+            *succeeded = true;
         }
     }
     char * parsingError = NULL;
     std::string nullTerminatedCopy = buffer.toStdString();
     long result = strtol(nullTerminatedCopy.c_str(), &parsingError, 10);
     if(result == 0.0 && parsingError == nullTerminatedCopy.c_str()){
-        if (succeded){
-            *succeded = false;
+        if (succeeded){
+            *succeeded = false;
         }
         return 0;
     }
-    if(succeded){
-        *succeded = true;
+    if(succeeded){
+        *succeeded = true;
     }
     return result;
 }
 
-double JsonNavi::doubleFromHeader(const std::string& header, bool* succeded) const{
+double JsonNavi::doubleFromHeader(const std::string& header, bool* succeeded) const{
     TextFrame buffer = textFromHeader(header);
     if(buffer.frameStart == NULL){
-        if(succeded){
-            *succeded = false;
+        if(succeeded){
+            *succeeded = false;
             return false;
         }
     }
     else{
-        if(succeded){
-            *succeded = true;
+        if(succeeded){
+            *succeeded = true;
         }
     }
     char * parsingError = NULL;
     std::string nullTerminatedCopy = buffer.toStdString();
     double result = strtod(nullTerminatedCopy.c_str(), &parsingError);
     if(result == 0.0 && parsingError == nullTerminatedCopy.c_str()){
-        if (succeded){
-            *succeded = false;
+        if (succeeded){
+            *succeeded = false;
         }
         return 0;
     }
-    if(succeded){
-        *succeded = true;
+    if(succeeded){
+        *succeeded = true;
     }
     return result;
 }

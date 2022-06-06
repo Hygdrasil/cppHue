@@ -3,11 +3,11 @@
 #include <string>
 #include <sstream>
 
-#include "jsonnavi.h"
-#include "simplehttpclient.h"
+#include "jsonnavi.hpp"
+#include "simplehttpclient.hpp"
 
 
-struct BuilbState{
+struct BulbState{
     int hue;
     int saturation;
     int brightness;
@@ -25,14 +25,14 @@ public:
     bool setTokenFromBridge();
     int getBulbCount();
 
-    bool isOn(int bulbId, bool* succeded = NULL);
-    bool isReachable(int bulbId, bool* succeded = NULL);
-    int getBrightness(int bulbId, bool* succeded = NULL);
-    BuilbState getState(int bulbId, bool* succeded = NULL);
+    bool isOn(int bulbId, bool* succeeded = NULL);
+    bool isReachable(int bulbId, bool* succeeded = NULL);
+    int getBrightness(int bulbId, bool* succeeded = NULL);
+    BulbState getState(int bulbId, bool* succeeded = NULL);
 
     bool setState(int bulbId, bool state);
     bool setBrightness(int bulbId, int brightness);
-    bool setState(int bulbId, const BuilbState& state);
+    bool setState(int bulbId, const BulbState& state);
 
 protected:
     void createGetToken();
@@ -41,7 +41,7 @@ protected:
     void createPut(unsigned int bulbIndex);
     HttpResponse getSomeThing() const;
     TextFrame getBulbJson(int bulbId);
-    bool isSomeThing(int bulbId, const std::string& someThing, bool* succeded);
+    bool isSomeThing(int bulbId, const std::string& someThing, bool* succeeded);
     bool setSomeThing(int bulbId, const std::string& json);
     std::stringstream pathBuffer;
 
