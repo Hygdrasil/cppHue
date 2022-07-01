@@ -1,7 +1,7 @@
 {
     "name": "cppHue",
     "version": "1.0.0",
-    "description": "",
+    "description": "cpp and posix dependet Philips Hue library ",
     "keywords": "",
     "repository":{
         "type": "git",
