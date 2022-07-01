@@ -88,7 +88,7 @@ TextFrame JsonNavi::findHeader(const std::string& header) const{
 }
 
 bool JsonNavi::hasHeader(const std::string& header) const{
-    return findHeader(header).size >= 0;
+    return findHeader(header).frameStart != NULL;
 }
 
 const char* findClosing(TextFrame json){
