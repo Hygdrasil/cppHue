@@ -4,12 +4,15 @@
 #include "json_serialicer.hpp"
 #include "jsonnavi.hpp"
 
-HueBridge::HueBridge(const std::string ip)
+HueBridge::HueBridge(const std::string& ip)
 {
+    this->ip = ip.c_str();
     client.connectToIp(ip, 80);
+    client.close();
 }
 
 void HueBridge::createGetToken(){
+    pathBuffer.str("");
     pathBuffer.clear();
     pathBuffer << HueBridge::BASE_PATH;
 }
@@ -31,15 +34,16 @@ void HueBridge::createPut(unsigned int bulbIndex){
     pathBuffer << "/state";
 }
 
-HttpResponse HueBridge::getSomeThing() const{
+HttpResponse HueBridge::getSomeThing(){
     printf("connecting to bulbServer");
-
+    client.connectToIp(ip, 80);
     HttpResponse response = client.get(pathBuffer.str() ,"");
+    client.close();
     printf("http Response: %s\n", response.message.c_str());
     return response;
 }
 
-std::string HueBridge::getAccessToken()const{
+std::string HueBridge::getAccessToken(){
     return accessToken;
 }
 
@@ -137,8 +141,11 @@ BulbState HueBridge::getState(int bulbId, bool* succeeded){
 
 bool HueBridge::setSomeThing(int bulbId, const std::string& json){
     createPut(bulbId);
+    client.connectToIp(ip, 80);
     HttpResponse response = client.put(pathBuffer.str(), json);
+    client.close();
     if(!response.succeeded()){
+        printf("request faild with: %s\n", response.message.c_str());
         return false;
     }
 

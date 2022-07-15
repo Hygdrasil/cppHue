@@ -18,9 +18,9 @@ struct BulbState{
 class HueBridge
 {
 public:
-    HueBridge(const std::string ip);
+    HueBridge(const std::string& ip);
 
-    std::string getAccessToken()const;
+    std::string getAccessToken();
     void setToken(const std::string& token);
     bool setTokenFromBridge();
     int getBulbCount();
@@ -39,13 +39,14 @@ protected:
     void createGetAll();
     void createGet(unsigned int bulbIndex);
     void createPut(unsigned int bulbIndex);
-    HttpResponse getSomeThing() const;
+    HttpResponse getSomeThing();
     TextFrame getBulbJson(int bulbId);
     bool isSomeThing(int bulbId, const std::string& someThing, bool* succeeded);
     bool setSomeThing(int bulbId, const std::string& json);
     std::stringstream pathBuffer;
 
     SimpleHttpClient client{};
+    std::string ip;
     std::string accessToken ="";
 
     static constexpr const char* BASE_PATH = "/api";

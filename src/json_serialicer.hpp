@@ -134,7 +134,7 @@ protected:
         handleFirstMember();
         data << '"';
         data << name;
-        data << "\": ";
+        data << "\":";
     }
     void handleFirstMember(){
         if(firstMember){
@@ -148,7 +148,7 @@ protected:
         if(value){
             data << "true";
         }else{
-            data <<"false";
+            data << "false";
         }
     }
     

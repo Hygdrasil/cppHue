@@ -18,6 +18,7 @@ public:
     SimpleHttpClient();
     ~SimpleHttpClient();
     HttpResponse::ConnectionState connectToIp(const std::string& ip, int port);
+    void close();
     HttpResponse get(const std::string& path, const std::string& message = "") const;
     HttpResponse post(const std::string& path, const std::string& message = "") const;
     HttpResponse put(const std::string& path, const std::string& message = "") const;

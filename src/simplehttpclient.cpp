@@ -54,8 +54,13 @@ SimpleHttpClient::SimpleHttpClient()
 }
 SimpleHttpClient::~SimpleHttpClient(){
     if(serverId != 0){
-        close(serverId);
+        ::close(serverId);
     }
+}
+
+void SimpleHttpClient::SimpleHttpClient::close(){
+    ::close(serverId);
+    serverId = 0;
 }
 
 HttpResponse::ConnectionState SimpleHttpClient::connectToIp(const std::string& ip, int port){
@@ -67,6 +72,7 @@ HttpResponse::ConnectionState SimpleHttpClient::connectToIp(const std::string& i
     sockedAddr.sin_port = htons(port);
     sock =  socket(AF_INET, SOCK_STREAM, 0);
     if(sock < 0){
+        printf("failed connection \n");
         return HttpResponse::NO_CONNECTION;
     }
     printf("sockedId: %d\n", sock);
@@ -99,17 +105,18 @@ HttpResponse SimpleHttpClient::request(RequestTyp typ, const std::string& path, 
     header << " ";
     header << path;
     header << " ";
-    header << SimpleHttpClient::protocol;
+    header <<  SimpleHttpClient::protocol;
     header << SimpleHttpClient::newLine;
+    header << "Connection: close" << SimpleHttpClient::newLine;
     if(! message.empty()){
         header << SimpleHttpClient::acceptTypes;
         header << SimpleHttpClient::newLine;
-
-        header << "Content-Length: " << message.size() +2;
+        header << "Content-Length: " << message.size();
         header << SimpleHttpClient::newLine << SimpleHttpClient::newLine;
         header << message;
     }
     header << SimpleHttpClient::newLine << SimpleHttpClient::newLine;
+    
     HttpResponse result;
     result.state = writeServer(header.str());
 
@@ -119,7 +126,6 @@ HttpResponse SimpleHttpClient::request(RequestTyp typ, const std::string& path, 
         result.message = "";
         return result;
     }
-
     result.state =  readServer(result.message);
     return result;
 }
@@ -150,6 +156,7 @@ HttpResponse::ConnectionState SimpleHttpClient::readServer(std::string& received
 
 HttpResponse::ConnectionState SimpleHttpClient::writeServer(const std::string& message) const{
     if(serverId == 0){
+        printf("server is closed\n");
         return HttpResponse::NO_CONNECTION;
     }
     const char* raw = message.c_str();

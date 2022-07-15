@@ -43,9 +43,29 @@ extern "C" {
  */
 void run(){
     HueBridge bridge{"192.168.188.27"};
-    bridge.setToken("eaieai");
-    BulbState state = bridge.getState(1);
-    bridge.setState(1, state);    
+    bridge.setToken(BRIDGE_TOKEN);
+    bool succeded;
+    BulbState state = bridge.getState(1, &succeded);
+    if(!succeded){
+        printf("Failed to fetch data from the bridge are ip and token correct?,\n");
+    }
+    while(succeded){
+        state = bridge.getState(TOGGLE_BUILB, &succeded); 
+        if(state.isReachable && state.isOn){
+            vTaskDelay(60*1000 / portTICK_RATE_MS);
+            state = bridge.getState(TOGGLE_BUILB, &succeded); 
+            if(state.isReachable && state.isOn){
+                bridge.setState(TOGGLE_BUILB, false);
+            }
+
+        }
+        vTaskDelay(1000 / portTICK_RATE_MS);
+
+    }  
+    printf("connection to bridge failed\n");
+    vTaskDelay(3000 / portTICK_RATE_MS);
+
+
 }
 
 extern "C" {

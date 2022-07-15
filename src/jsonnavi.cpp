@@ -55,9 +55,7 @@ const char* findString(TextFrame frame, const std::string& string){
     if(frame.size < string.size()){
         return NULL;
     }
-    printf("%d\n", string.size());
     for(unsigned int i = 0; i< frame.size-string.size()-1; i++){
-        printf("%d\n", i);
         if(0 == memcmp(frame.frameStart+i,string.c_str(),string.size())){
             return frame.frameStart+i;
         }
@@ -74,7 +72,6 @@ TextFrame JsonNavi::findHeader(const std::string& header) const{
     const char * index;
     do{
         index = findString(remaining, header);
-        printf("test");
         if(index == NULL){
             return TextFrame(NULL, 0);
         }
