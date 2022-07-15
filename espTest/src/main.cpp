@@ -51,13 +51,31 @@ void run(){
     }
     while(succeded){
         state = bridge.getState(TOGGLE_BUILB, &succeded); 
+        printf("Bulbstate: %s\n", bridge.stateToJson(state).c_str());
         if(state.isReachable && state.isOn){
-            vTaskDelay(60*1000 / portTICK_RATE_MS);
-            state = bridge.getState(TOGGLE_BUILB, &succeded); 
-            if(state.isReachable && state.isOn){
-                bridge.setState(TOGGLE_BUILB, false);
+            int oldBrightness = bridge.getBrightness(TOGGLE_BUILB);
+            if(!bridge.setBrightness(TOGGLE_BUILB, state.brightness-1)){ //if the brightness is high egain some switched it on of
+                continue;
             }
-
+            vTaskDelay(40*1000 / portTICK_RATE_MS);
+            state = bridge.getState(TOGGLE_BUILB, &succeded);
+            if(state.brightness != oldBrightness-1 || !state.isOn || !state.isReachable || !succeded){
+                continue;
+            }
+            if(!bridge.setBrightness(TOGGLE_BUILB, oldBrightness/2)){ //brightness change == new timeout
+                continue;
+            }
+            vTaskDelay(20*1000 / portTICK_RATE_MS);
+            state = bridge.getState(TOGGLE_BUILB, &succeded);
+            if(state.brightness != oldBrightness-1 || !state.isOn || !state.isReachable || !succeded){
+                continue;
+            }
+            state = bridge.getState(TOGGLE_BUILB, &succeded); 
+            if(succeded && state.isReachable && state.isOn && state.brightness == oldBrightness/2){
+                state.isOn = false;
+                state.brightness = oldBrightness;
+                bridge.setState(TOGGLE_BUILB, state);
+            }
         }
         vTaskDelay(1000 / portTICK_RATE_MS);
 

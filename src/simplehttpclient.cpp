@@ -7,8 +7,20 @@
 #include <netinet/in.h> /* struct sockaddr_in, struct sockaddr */
 #include <netdb.h> /* struct hostent, gethostbyname */
 #include <arpa/inet.h>
+#include <stdarg.h>
 #include <string.h> /* memcpy, memset */
 #include <cstring>
+
+
+void logHue(const char * fmt, ...){
+#ifdef HUE_VERBOSE
+    va_list argp;
+    va_start(argp, fmt);
+    printf("[cppHUE:] ");
+    printf(fmt, argp);
+    va_end(argp);   
+#endif
+}
 
 const std::map<SimpleHttpClient::RequestTyp, std::string> requestToName{
     {SimpleHttpClient::GET, "GET"},
@@ -72,13 +84,12 @@ HttpResponse::ConnectionState SimpleHttpClient::connectToIp(const std::string& i
     sockedAddr.sin_port = htons(port);
     sock =  socket(AF_INET, SOCK_STREAM, 0);
     if(sock < 0){
-        printf("failed connection \n");
+        logHue("failed connection \n");
         return HttpResponse::NO_CONNECTION;
     }
-    printf("sockedId: %d\n", sock);
     int err = connect(sock, (struct sockaddr *)&sockedAddr, sizeof(struct sockaddr_in6));
     if (err != 0) {
-        printf("Socket unable to connect to %s:%d: error %d errno %d", ip.c_str(), port, err,errno);
+        logHue("Socket unable to connect to %s:%d: error %d errno %d", ip.c_str(), port, err,errno);
         return HttpResponse::NO_CONNECTION;
     }
     serverId = sock;
@@ -98,7 +109,6 @@ HttpResponse SimpleHttpClient::put(const std::string& path, const std::string& m
 }
 
 HttpResponse SimpleHttpClient::request(RequestTyp typ, const std::string& path, const std::string& message) const{
-    printf("in request\n");
     std::stringstream header;
     //first line
     header << requestToName.at(typ);
@@ -120,9 +130,8 @@ HttpResponse SimpleHttpClient::request(RequestTyp typ, const std::string& path, 
     HttpResponse result;
     result.state = writeServer(header.str());
 
-    printf("wrode to server\n");
     if(result.state != HttpResponse::OK){
-        printf("error while writing to server\n");
+        logHue("error while writing to server\n");
         result.message = "";
         return result;
     }
@@ -143,7 +152,7 @@ HttpResponse::ConnectionState SimpleHttpClient::readServer(std::string& received
     do {
         size = read(serverId,shortBuffer, shortBufferSize-1);
         if (size < 0){
-            printf("ERROR reading response from socket %d\n", size);
+            logHue("ERROR reading response from socket %d\n", size);
             return HttpResponse::NO_CONNECTION;
         }
         shortBuffer[size] = '\0';
@@ -156,18 +165,17 @@ HttpResponse::ConnectionState SimpleHttpClient::readServer(std::string& received
 
 HttpResponse::ConnectionState SimpleHttpClient::writeServer(const std::string& message) const{
     if(serverId == 0){
-        printf("server is closed\n");
+        logHue("server is closed\n");
         return HttpResponse::NO_CONNECTION;
     }
     const char* raw = message.c_str();
-    printf("\"%s\"", message.c_str());
     size_t send = 0;
     int bytes;
 
     do {
         bytes = write(serverId,&(raw[send]),message.size()-send);
         if (bytes < 0){
-            printf("ERROR writing message to socket\n");
+            logHue("ERROR writing message to socket\n");
             return HttpResponse::NO_CONNECTION;
         }
         if (bytes == 0){

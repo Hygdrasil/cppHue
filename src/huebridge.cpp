@@ -35,11 +35,9 @@ void HueBridge::createPut(unsigned int bulbIndex){
 }
 
 HttpResponse HueBridge::getSomeThing(){
-    printf("connecting to bulbServer");
     client.connectToIp(ip, 80);
     HttpResponse response = client.get(pathBuffer.str() ,"");
     client.close();
-    printf("http Response: %s\n", response.message.c_str());
     return response;
 }
 
@@ -82,11 +80,8 @@ int HueBridge::getBulbCount(){
 TextFrame HueBridge::getBulbJson(int bulbId){
     createGet(bulbId);
     HttpResponse response = getSomeThing();
-    printf("bulbResponse: %s\n", response.message.c_str());
-    printf("was bulb Response errorCode %d\n", response.statusCode());
     if(response.succeeded()){
         JsonNavi parser{response.message};
-        printf("getting Json");
         return parser.jsonFromHeader("state");
     }
     return TextFrame(NULL, 0);
@@ -145,7 +140,7 @@ bool HueBridge::setSomeThing(int bulbId, const std::string& json){
     HttpResponse response = client.put(pathBuffer.str(), json);
     client.close();
     if(!response.succeeded()){
-        printf("request faild with: %s\n", response.message.c_str());
+        logHue("request faild with: %s\n", response.message.c_str());
         return false;
     }
 
@@ -160,14 +155,18 @@ bool HueBridge::setState(int bulbId, bool state){
 
 }
 
-bool HueBridge::setState(int bulbId, const BulbState& state){
-    //{"on":true, "sat":254, "bri":254,"hue":10000}
+std::string HueBridge::stateToJson(const BulbState& state){
     JsonSerializer json;
     json.addBoolMember(HueBridge::ON_KEY, state.isOn);
     json.addMember(HueBridge::BRIGHTNESS_KEY, state.brightness);
     json.addMember(HueBridge::SATURATION_KEY, state.saturation);
     json.addMember(HueBridge::HUE_KEY, state.hue);
-    return setSomeThing(bulbId, json.asClass());
+    return json.asClass();
+}
+bool HueBridge::setState(int bulbId, const BulbState& state){
+    //{"on":true, "sat":254, "bri":254,"hue":10000}
+    JsonSerializer json;
+    return setSomeThing(bulbId, stateToJson(state));
 }
 
 bool HueBridge::setBrightness(int bulbId, int brightness){

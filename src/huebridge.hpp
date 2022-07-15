@@ -33,6 +33,7 @@ public:
     bool setState(int bulbId, bool state);
     bool setBrightness(int bulbId, int brightness);
     bool setState(int bulbId, const BulbState& state);
+    std::string stateToJson(const BulbState& state);
 
 protected:
     void createGetToken();

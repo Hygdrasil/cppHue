@@ -11,6 +11,8 @@ struct HttpResponse{
 
 };
 
+void logHue(const char * fmt, ...);
+
 class SimpleHttpClient
 {
 public:
