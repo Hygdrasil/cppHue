@@ -36,12 +36,26 @@ public:
     std::string stateToJson(const BulbState& state);
 
 protected:
+    struct BulbData{
+        const std::string raw;
+        std::string_view json;
+    };
     void createGetToken();
     void createGetAll();
     void createGet(unsigned int bulbIndex);
     void createPut(unsigned int bulbIndex);
     HttpResponse getSomeThing();
-    TextFrame getBulbJson(int bulbId);
+    BulbData getBulbJson(int bulbId){
+        createGet(bulbId);
+        HttpResponse response = getSomeThing();
+        if(response.succeeded()){
+            BulbData data{response.message,""};
+            JsonNavi parser{data.raw};
+            data.json = parser.jsonFromHeader("state");
+            return data;
+        }
+        return BulbData{"",""};
+    }
     bool isSomeThing(int bulbId, const std::string& someThing, bool* succeeded);
     bool setSomeThing(int bulbId, const std::string& json);
     std::stringstream pathBuffer;
@@ -57,6 +71,8 @@ protected:
     static constexpr const char* SATURATION_KEY = "sat";
     static constexpr const char* HUE_KEY = "hue";
     static constexpr const char* REACHABLE_KEY = "reachable";
+
+    
 
 };
 

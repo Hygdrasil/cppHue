@@ -58,11 +58,11 @@ bool HueBridge::setTokenFromBridge(){
         return false;
     }
     JsonNavi responseParser{response.message};
-    TextFrame token = responseParser.stringFromHeader("username");
-    if(token.frameStart == NULL){
+    const std::string_view token = responseParser.stringFromHeader("username");
+    if(token == ""){
         return false;
     }
-    accessToken = token.toStdString();
+    accessToken = token;
     return true;
 }
 
@@ -74,22 +74,11 @@ int HueBridge::getBulbCount(){
         return parser.headerNumber();
     }
     return -1;
-
-}
-
-TextFrame HueBridge::getBulbJson(int bulbId){
-    createGet(bulbId);
-    HttpResponse response = getSomeThing();
-    if(response.succeeded()){
-        JsonNavi parser{response.message};
-        return parser.jsonFromHeader("state");
-    }
-    return TextFrame(NULL, 0);
 }
 
 bool HueBridge::isSomeThing(int bulbId, const std::string& someThing, bool* succeeded){
-    JsonNavi parser{getBulbJson(bulbId)};
-    return parser.boolFromHeader(someThing, succeeded);
+    BulbData raw{getBulbJson(bulbId)};
+    return JsonNavi(raw.json).boolFromHeader(someThing, succeeded);
 }
 
 bool HueBridge::isOn(int bulbId, bool* succeeded){
@@ -102,13 +91,14 @@ bool HueBridge::isReachable(int bulbId, bool* succeeded){
 
 
 int HueBridge::getBrightness(int bulbId, bool* succeeded){
-    JsonNavi parser{getBulbJson(bulbId)};
-    return parser.longFromHeader(HueBridge::BRIGHTNESS_KEY, succeeded);
+    BulbData raw{getBulbJson(bulbId)};
+    return JsonNavi(raw.json).longFromHeader(HueBridge::BRIGHTNESS_KEY, succeeded);
 }
 
 BulbState HueBridge::getState(int bulbId, bool* succeeded){
     BulbState state;
-    JsonNavi parser{getBulbJson(bulbId)};
+    BulbData raw = getBulbJson(bulbId);
+    JsonNavi parser{raw.json};
     bool working = false;
     do{
         state.brightness = (int) parser.longFromHeader( HueBridge::BRIGHTNESS_KEY, &working);
