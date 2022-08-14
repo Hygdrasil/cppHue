@@ -1,7 +1,6 @@
 #ifndef HUEBRIDGE_H
 #define HUEBRIDGE_H
 #include <string>
-#include <sstream>
 
 #include "jsonnavi.hpp"
 #include "simplehttpclient.hpp"
@@ -40,14 +39,13 @@ protected:
         const std::string raw;
         std::string_view json;
     };
-    void createGetToken();
-    void createGetAll();
-    void createGet(unsigned int bulbIndex);
-    void createPut(unsigned int bulbIndex);
-    HttpResponse getSomeThing();
-    BulbData getBulbJson(int bulbId){
-        createGet(bulbId);
-        HttpResponse response = getSomeThing();
+    std::string createGetToken()const;
+    std::string createGetAll()const;
+    std::string createGet(const unsigned int bulbIndex)const;
+    std::string createPut(const unsigned int bulbIndex)const;
+    HttpResponse getSomeThing(const std::string& path);
+    BulbData getBulbJson(int bulbId){   
+        HttpResponse response = getSomeThing(createGet(bulbId));
         if(response.succeeded()){
             BulbData data{response.message,""};
             JsonNavi parser{data.raw};
@@ -58,7 +56,6 @@ protected:
     }
     bool isSomeThing(int bulbId, const std::string& someThing, bool* succeeded);
     bool setSomeThing(int bulbId, const std::string& json);
-    std::stringstream pathBuffer;
 
     SimpleHttpClient client{};
     std::string ip;

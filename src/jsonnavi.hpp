@@ -205,7 +205,6 @@ protected:
         }
         if(succeeded){
             *succeeded = true;
-            return 0;
         }
         return value;
     }

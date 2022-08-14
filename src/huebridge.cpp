@@ -11,32 +11,31 @@ HueBridge::HueBridge(const std::string& ip)
     client.close();
 }
 
-void HueBridge::createGetToken(){
-    pathBuffer.str("");
-    pathBuffer.clear();
-    pathBuffer << HueBridge::BASE_PATH;
+std::string HueBridge::createGetToken()const{
+    return HueBridge::BASE_PATH;
 }
 
-void HueBridge::createGetAll(){
-    createGetToken();
-    pathBuffer <<'/';
-    pathBuffer << accessToken << '/';
-    pathBuffer << HueBridge::LIGHTS;
+std::string HueBridge::createGetAll()const{
+    std::string path = createGetToken();
+    path += '/';
+    path += accessToken + '/';
+    path += HueBridge::LIGHTS;
+    return path;
 }
 
-void HueBridge::createGet(unsigned int bulbIndex){
-    createGetAll();
-    pathBuffer << '/' << bulbIndex;
+std::string HueBridge::createGet(unsigned int bulbIndex)const{
+    std::string path = createGetAll();
+    return path + '/' + std::to_string(bulbIndex);
 }
 
-void HueBridge::createPut(unsigned int bulbIndex){
-    createGet(bulbIndex);
-    pathBuffer << "/state";
+std::string HueBridge::createPut(unsigned int bulbIndex)const{
+    std::string path = createGet(bulbIndex);
+    return path + "/state";
 }
 
-HttpResponse HueBridge::getSomeThing(){
+HttpResponse HueBridge::getSomeThing(const std::string& path){
     client.connectToIp(ip, 80);
-    HttpResponse response = client.get(pathBuffer.str() ,"");
+    HttpResponse response = client.get(path ,"");
     client.close();
     return response;
 }
@@ -51,9 +50,8 @@ void HueBridge::setToken(const std::string& token){
 
 bool HueBridge::setTokenFromBridge(){
     JsonSerializer json;
-    json.addMember("devicetype", "HUE_CLIENT");
-    createGetToken();
-    HttpResponse response = client.post(pathBuffer.str(), json.asClass());
+    json = json.join("devicetype", "HUE_CLIENT");
+    HttpResponse response = client.post(createGetToken(), json.toString());
     if(!response.succeeded()){
         return false;
     }
@@ -67,8 +65,7 @@ bool HueBridge::setTokenFromBridge(){
 }
 
 int HueBridge::getBulbCount(){
-    createGetAll();
-    HttpResponse response = getSomeThing();
+    HttpResponse response = getSomeThing(createGetAll());
     if(response.succeeded()){
         JsonNavi parser{response.message};
         return parser.headerNumber();
@@ -101,11 +98,11 @@ BulbState HueBridge::getState(int bulbId, bool* succeeded){
     JsonNavi parser{raw.json};
     bool working = false;
     do{
-        state.brightness = (int) parser.longFromHeader( HueBridge::BRIGHTNESS_KEY, &working);
+        state.brightness = parser.longFromHeader( HueBridge::BRIGHTNESS_KEY, &working);
         if(!working){
             break;
         }
-        state.hue = (int) parser.longFromHeader(HueBridge::HUE_KEY, &working);
+        state.hue =  parser.longFromHeader(HueBridge::HUE_KEY, &working);
         if(!working){
             break;
         }
@@ -117,6 +114,10 @@ BulbState HueBridge::getState(int bulbId, bool* succeeded){
         if(!working){
             break;
         }
+        state.saturation = parser.longFromHeader(HueBridge::SATURATION_KEY, &working);
+        if(!working){
+            break;
+        }
     }while(false);
     if(succeeded){
         *succeeded = working;
@@ -124,10 +125,9 @@ BulbState HueBridge::getState(int bulbId, bool* succeeded){
     return state;
 }
 
-bool HueBridge::setSomeThing(int bulbId, const std::string& json){
-    createPut(bulbId);
+bool HueBridge::setSomeThing(int bulbId, const std::string& json){    
     client.connectToIp(ip, 80);
-    HttpResponse response = client.put(pathBuffer.str(), json);
+    HttpResponse response = client.put(createPut(bulbId), json);
     client.close();
     if(!response.succeeded()){
         logHue("request faild with: %s\n", response.message.c_str());
@@ -139,19 +139,18 @@ bool HueBridge::setSomeThing(int bulbId, const std::string& json){
 }
 
 bool HueBridge::setState(int bulbId, bool state){
-    JsonSerializer json;
-    json.addBoolMember(HueBridge::ON_KEY, state);
-    return setSomeThing(bulbId, json.asClass());
+    JsonSerializer json = JsonSerializer().join(HueBridge::ON_KEY, state);
+    return setSomeThing(bulbId, json.toString());
 
 }
 
 std::string HueBridge::stateToJson(const BulbState& state){
-    JsonSerializer json;
-    json.addBoolMember(HueBridge::ON_KEY, state.isOn);
-    json.addMember(HueBridge::BRIGHTNESS_KEY, state.brightness);
-    json.addMember(HueBridge::SATURATION_KEY, state.saturation);
-    json.addMember(HueBridge::HUE_KEY, state.hue);
-    return json.asClass();
+    JsonSerializer json = JsonSerializer()
+        .join(HueBridge::ON_KEY, state.isOn)
+        .join(HueBridge::BRIGHTNESS_KEY, state.brightness)
+        .join(HueBridge::SATURATION_KEY, state.saturation)
+        .join(HueBridge::HUE_KEY, state.hue);
+    return json.toString();
 }
 bool HueBridge::setState(int bulbId, const BulbState& state){
     //{"on":true, "sat":254, "bri":254,"hue":10000}
@@ -160,7 +159,6 @@ bool HueBridge::setState(int bulbId, const BulbState& state){
 }
 
 bool HueBridge::setBrightness(int bulbId, int brightness){
-    JsonSerializer json;
-    json.addMember(HueBridge::BRIGHTNESS_KEY, brightness);
-    return setSomeThing(bulbId, json.asClass());
+    JsonSerializer json = JsonSerializer().join(HueBridge::BRIGHTNESS_KEY, brightness);
+    return setSomeThing(bulbId, json.toString());
 }
