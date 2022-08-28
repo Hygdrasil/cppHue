@@ -1,11 +1,12 @@
-#ifndef SIMPLEHTTPCLIENT_H
-#define SIMPLEHTTPCLIENT_H
+#pragma once
 
 #include <string>
+#include <string_view>
 struct HttpResponse{
     enum ConnectionState {OK, EMPTY, NO_CONNECTION};
     ConnectionState state;
     std::string message;
+
     bool succeeded() const;
     unsigned int statusCode() const;
 
@@ -17,7 +18,6 @@ class SimpleHttpClient
 {
 public:
     enum RequestTyp {GET, POST, PUT};
-    SimpleHttpClient();
     ~SimpleHttpClient();
     HttpResponse::ConnectionState connectToIp(const std::string& ip, int port);
     void close();
@@ -29,14 +29,17 @@ public:
     static const std::string protocol;
     static const std::string newLine;
     static const std::string acceptTypes;
+    static const std::string connectionType;
+    static const std::string contendSizePrefix;
 
 
 protected:
-    HttpResponse request(RequestTyp typ, const std::string& path, const std::string& message) const;
+    HttpResponse request(const RequestTyp typ, const std::string& path, const std::string& message) const;
     HttpResponse::ConnectionState readServer(std::string& received) const;
     HttpResponse::ConnectionState writeServer(const std::string& message) const;
-    std::string requestText(RequestTyp typ, const std::string& message) const;
+    std::string requestText(const RequestTyp typ, const std::string& message) const;
+    std::size_t requestSize(const RequestTyp typ, const std::string_view path, const std::string_view message)const;
+
+private:
     int serverId = 0;
 };
-
-#endif // SIMPLEHTTPCLIENT_H

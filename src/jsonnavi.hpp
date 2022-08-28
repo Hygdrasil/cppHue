@@ -1,9 +1,8 @@
-#ifndef JSONNAVI_H
-#define JSONNAVI_H
-
+#pragma once
+#include <array>
+#include <cmath>
 #include <string>
 #include <string_view>
-#include <cmath>
 
 class JsonNavi
 {
@@ -18,17 +17,15 @@ public:
      * @return int negative number on failure (invalid json)
      */
     constexpr int headerNumber() const{
-        int headerCount = 1;
-        std::size_t courser = 0;
-        courser = json.find(OPENER, courser);
-        if(courser == json.npos){
+        int headerCount = 0;
+        std::size_t startPoint = json.find(OPENER, 0);
+        if(startPoint == json.npos){
             return -1;
         }
-        do{
-            courser = json.find(HEADER, courser);
-            if(courser == json.npos){
-                break;
-            }
+        for(size_t courser = json.find(HEADER, startPoint); 
+            courser != json.npos; 
+            courser = json.find(HEADER, courser))
+        {
             courser = json.find_first_of(",{}",courser);
             if(json[courser]== OPENER){
                 courser = findClosing(courser);
@@ -37,17 +34,17 @@ public:
                 }
             }
             headerCount++;
-        }while(true);
-        return -1; //fixes compiler warning
+        }
+        return headerCount;
     }
 
     constexpr bool hasHeader(const std::string_view header) const{
-        return findHeader(header) != "";
+        return !findHeader(header).empty();
     }
 
     constexpr std::string_view stringFromHeader(const std::string_view header) const{
         const std::string_view contend = getContendStart(header);
-        if(contend == ""){
+        if(contend.empty()){
             return contend;
         }
         std::size_t prefixIndex = contend.find('"');
@@ -65,10 +62,10 @@ public:
 
     constexpr std::string_view jsonFromHeader(const std::string_view header) const{
         const std::string_view contend= getContendStart(header);
-        if(contend == ""){
+        if(contend.empty()){
             return "";
         }
-        std::size_t openerIndex = contend.find("{");
+        std::size_t openerIndex = contend.find('{');
         if(openerIndex == contend.npos){
             return "";
         }
@@ -81,7 +78,7 @@ public:
 
     constexpr std::string_view textFromHeader(const std::string_view header) const{
         const std::string_view contend = getContendStart(header);
-        if(contend == ""){
+        if(contend.empty()){
             return "";
         }
         const std::size_t endIndex = contend.find_first_of(END_POSSIBILITIES);
@@ -93,7 +90,7 @@ public:
 
     constexpr bool boolFromHeader(const std::string_view header, bool* succeeded) const{
         const std::string_view buffer = textFromHeader(header);
-        if(buffer == ""){
+        if(buffer.empty()){
             if(succeeded){
                 *succeeded = false;
                 return false;
@@ -127,7 +124,7 @@ public:
         do{
             headerStart = json.find(header, headerStart);
             if(headerStart == json.npos){
-                return std::string_view("");
+                return {""};
             }
             if(headerStart > 0 && json[headerStart-1] == '"' 
                 && headerStart+header.size()+1 < json.size() && json[headerStart+header.size()] == '"'){
@@ -139,12 +136,12 @@ public:
             }
             headerStart++;
         }while(headerStart != json.npos);
-        return std::string_view("");
+        return {""};
     }
 
     constexpr std::string_view getContendStart(const std::string_view header) const{
         const std::string_view headerStart =  findHeader(header);
-        if(headerStart == ""){
+        if(headerStart.empty()){
             return headerStart;
         }
         return  json.substr(headerStart.data()-json.data()+headerStart.size(), json.npos);
@@ -189,12 +186,13 @@ protected:
     }
     constexpr long toLong(const std::string_view text, bool* succeeded) const{
         long value = 0;
+        const uint16_t base = 10;
         for(const char c : text){
             if(c == ' '){
                 continue;
             }
             if(c >= '0' && c<= '9'){
-                value *= 10;
+                value *= base;
                 value += static_cast<long>(c - '0');
             }else{
                 if(succeeded){
@@ -210,15 +208,16 @@ protected:
     }
 
     constexpr double toDouble(const std::string_view text, bool* succeeded) const{
-        long parts[2] = {0,0};
+        std::array<long,2> parts = {0,0};
         long subSpaces = 0;
         unsigned int step = 0;
+        const uint16_t base = 10;
         for(const char c : text){
             if(c == ' '){
                 continue;
             }
             if(c >= '0' && c<= '9'){
-                parts[step] *= 10;
+                parts[step] *= base;
                 parts[step] += static_cast<double>(c - '0');
                 if(step == 1){
                     subSpaces++;
@@ -243,8 +242,8 @@ protected:
             *succeeded = true;
             return 0;
         }
-        double value = parts[1];
-        value /= pow(10, subSpaces);
+        auto value = static_cast<double>(parts[1]);
+        value /= pow(base, subSpaces);
         value += parts[0];
         return value;
     }
@@ -254,7 +253,7 @@ protected:
     template<typename ValueType, typename ConverterType>
     constexpr ValueType fromHeader(const std::string_view header , bool* succeeded, ConverterType converter) const{
         const std::string_view buffer = textFromHeader(header);
-        if(buffer == ""){
+        if(buffer.empty()){
             if(succeeded){
                 *succeeded = false;
                 return false;
@@ -268,5 +267,3 @@ protected:
         return value;
     }
 };
-
-#endif // JSONNAVI_H

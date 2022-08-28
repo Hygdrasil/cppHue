@@ -1,16 +1,18 @@
 #include "simplehttpclient.hpp"
-#include <sstream>
+
+#include <array>
+#include <list>
 #include <map>
+#include <numeric>
 
 #include <unistd.h> /* read, write, close */
 #include <sys/socket.h> /* socket, connect */
 #include <netinet/in.h> /* struct sockaddr_in, struct sockaddr */
 #include <netdb.h> /* struct hostent, gethostbyname */
 #include <arpa/inet.h>
-#include <stdarg.h>
-#include <string.h> /* memcpy, memset */
+#include <cstdarg>
+#include <cstring> /* memcpy, memset */
 #include <cstring>
-
 
 void logHue(const char * fmt, ...){
 #ifdef HUE_VERBOSE
@@ -31,6 +33,8 @@ const std::map<SimpleHttpClient::RequestTyp, std::string> requestToName{
 const std::string SimpleHttpClient::protocol = "HTTP/1.0";
 const std::string SimpleHttpClient::newLine = "\r\n";
 const std::string SimpleHttpClient::acceptTypes = "Accept: */*";
+const std::string SimpleHttpClient::connectionType = "Connection: close";
+const std::string SimpleHttpClient::contendSizePrefix ="Content-Length: ";
 
 bool HttpResponse::succeeded() const{
     return state == HttpResponse::OK
@@ -61,9 +65,6 @@ unsigned int HttpResponse::statusCode() const{
     return value;
 }
 
-SimpleHttpClient::SimpleHttpClient()
-{
-}
 SimpleHttpClient::~SimpleHttpClient(){
     if(serverId != 0){
         ::close(serverId);
@@ -71,8 +72,10 @@ SimpleHttpClient::~SimpleHttpClient(){
 }
 
 void SimpleHttpClient::SimpleHttpClient::close(){
-    ::close(serverId);
-    serverId = 0;
+    if(serverId != 0){
+        ::close(serverId);
+        serverId = 0;
+    }
 }
 
 HttpResponse::ConnectionState SimpleHttpClient::connectToIp(const std::string& ip, int port){
@@ -108,27 +111,59 @@ HttpResponse SimpleHttpClient::put(const std::string& path, const std::string& m
     return request(PUT, path, message);
 }
 
-HttpResponse SimpleHttpClient::request(RequestTyp typ, const std::string& path, const std::string& message) const{
-    std::stringstream header;
-    //first line
-    header << requestToName.at(typ);
-    header << " ";
-    header << path;
-    header << " ";
-    header <<  SimpleHttpClient::protocol;
-    header << SimpleHttpClient::newLine;
-    header << "Connection: close" << SimpleHttpClient::newLine;
+std::size_t SimpleHttpClient::requestSize(const RequestTyp typ, const std::string_view path, const std::string_view message) const{
+    std::size_t size = requestToName.at(typ).size();
+    size += path.size();
+    size += SimpleHttpClient::protocol.size();
+    constexpr std::size_t spaces = 2;
+    size += SimpleHttpClient::connectionType.size();
+    size += spaces;
+    const std::size_t ending = SimpleHttpClient::newLine.size()*2;
+
+    size += ending;
+
     if(! message.empty()){
-        header << SimpleHttpClient::acceptTypes;
-        header << SimpleHttpClient::newLine;
-        header << "Content-Length: " << message.size();
-        header << SimpleHttpClient::newLine << SimpleHttpClient::newLine;
-        header << message;
+        size += SimpleHttpClient::acceptTypes.size();
+        size += SimpleHttpClient::newLine.size();
+        size += SimpleHttpClient::contendSizePrefix.size();
+        std::size_t messageLengthSize = 2;
+        std::size_t messageLength = message.size();
+        while(messageLength > 0){
+            messageLengthSize++;
+            messageLength /=10;
+        }
+        size += messageLengthSize;
+        size += ending;
+        size += message.size();
     }
-    header << SimpleHttpClient::newLine << SimpleHttpClient::newLine;
+    size += ending;
+    return size;
+
+}
+
+HttpResponse SimpleHttpClient::request(const RequestTyp typ, const std::string& path, const std::string& message) const{
+
+    std::string header;
+    header.reserve(requestSize(typ, path, message));
+    //first line
+    header += requestToName.at(typ);
+    header += " ";
+    header += path;
+    header += " ";
+    header +=  SimpleHttpClient::protocol;
+    header += SimpleHttpClient::newLine;
+    header += SimpleHttpClient::connectionType + SimpleHttpClient::newLine;
+    if(! message.empty()){
+        header += SimpleHttpClient::acceptTypes;
+        header += SimpleHttpClient::newLine;
+        header += SimpleHttpClient::contendSizePrefix + std::to_string(message.size());
+        header += SimpleHttpClient::newLine + SimpleHttpClient::newLine;
+        header += message;
+    }
+    header += SimpleHttpClient::newLine + SimpleHttpClient::newLine;
     
     HttpResponse result;
-    result.state = writeServer(header.str());
+    result.state = writeServer(header);
 
     if(result.state != HttpResponse::OK){
         logHue("error while writing to server\n");
@@ -144,23 +179,39 @@ HttpResponse::ConnectionState SimpleHttpClient::readServer(std::string& received
     if(serverId == 0){
         return HttpResponse::NO_CONNECTION;
     }
-    std::stringstream memoryPool;
-    const int shortBufferSize = 32+1;
-    char shortBuffer[shortBufferSize];
-    int size;
+    constexpr int maxChunckSize = 32;
+    std::list<std::array<char,maxChunckSize>> memoryPool;
+    long chunkSize = 0;
     size_t total = 0;
+    long size = 0;
     do {
-        size = read(serverId,shortBuffer, shortBufferSize-1);
+        if(chunkSize == 0){
+            memoryPool.emplace_back(std::array<char, maxChunckSize>());
+            chunkSize = maxChunckSize;
+        }
+        size = read(serverId, memoryPool.rbegin()->data(), chunkSize);
         if (size < 0){
             logHue("ERROR reading response from socket %d\n", size);
             return HttpResponse::NO_CONNECTION;
         }
-        shortBuffer[size] = '\0';
-        memoryPool << shortBuffer;
+        chunkSize -= size;
         total += size;
     } while (size != 0);
-    received = memoryPool.str();
-   return ((total>0)? HttpResponse::OK: HttpResponse::EMPTY);
+    if(total == 0){
+        return HttpResponse::EMPTY;
+    }
+    std::string buffer;
+    buffer.reserve(total+1); //null terminator;
+    long copied = total;
+    for(const auto& chunk : memoryPool){
+        const long maxSize = (copied > maxChunckSize)?maxChunckSize : copied;
+        for(int i=0; i<maxSize; i++){
+            buffer +=chunk.at(i);
+        }
+        copied -= maxSize;
+    }
+    received = std::move(buffer);
+    return HttpResponse::OK;
 }
 
 HttpResponse::ConnectionState SimpleHttpClient::writeServer(const std::string& message) const{
@@ -170,10 +221,9 @@ HttpResponse::ConnectionState SimpleHttpClient::writeServer(const std::string& m
     }
     const char* raw = message.c_str();
     size_t send = 0;
-    int bytes;
 
     do {
-        bytes = write(serverId,&(raw[send]),message.size()-send);
+        long bytes = write(serverId,&(raw[send]),message.size()-send);
         if (bytes < 0){
             logHue("ERROR writing message to socket\n");
             return HttpResponse::NO_CONNECTION;

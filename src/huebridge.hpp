@@ -1,10 +1,8 @@
-#ifndef HUEBRIDGE_H
-#define HUEBRIDGE_H
+#pragma once
 #include <string>
 
 #include "jsonnavi.hpp"
 #include "simplehttpclient.hpp"
-
 
 struct BulbState{
     int hue;
@@ -13,6 +11,7 @@ struct BulbState{
     bool isOn;
     bool isReachable;
 };
+
 
 class HueBridge
 {
@@ -23,11 +22,11 @@ public:
     void setToken(const std::string& token);
     bool setTokenFromBridge();
     int getBulbCount();
-
-    bool isOn(int bulbId, bool* succeeded = NULL);
-    bool isReachable(int bulbId, bool* succeeded = NULL);
-    int getBrightness(int bulbId, bool* succeeded = NULL);
-    BulbState getState(int bulbId, bool* succeeded = NULL);
+    
+    bool isOn(int bulbId, bool* succeeded = nullptr);
+    bool isReachable(int bulbId, bool* succeeded = nullptr);
+    int getBrightness(int bulbId, bool* succeeded = nullptr);
+    BulbState getState(int bulbId, bool* succeeded = nullptr);
 
     bool setState(int bulbId, bool state);
     bool setBrightness(int bulbId, int brightness);
@@ -57,9 +56,7 @@ protected:
     bool isSomeThing(int bulbId, const std::string& someThing, bool* succeeded);
     bool setSomeThing(int bulbId, const std::string& json);
 
-    SimpleHttpClient client{};
-    std::string ip;
-    std::string accessToken ="";
+    void connect();
 
     static constexpr const char* BASE_PATH = "/api";
     static constexpr const char* LIGHTS = "lights";
@@ -69,8 +66,8 @@ protected:
     static constexpr const char* HUE_KEY = "hue";
     static constexpr const char* REACHABLE_KEY = "reachable";
 
-    
-
+private:
+    SimpleHttpClient client{};
+    std::string ip;
+    std::string accessToken ="";
 };
-
-#endif // HUEBRIDGE_H

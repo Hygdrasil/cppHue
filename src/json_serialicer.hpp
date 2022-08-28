@@ -1,7 +1,6 @@
-
+#pragma once
 #include <string>
 #include <string_view>
-#include <sstream>
 
 /**
  * @brief helper to generate a json-document from primary c-types
@@ -10,7 +9,7 @@
 
 class JsonSerializer{
 public:
-    JsonSerializer(){};
+    JsonSerializer() = default;
     JsonSerializer(const std::string_view contend)
         :buffer(contend){};
 
@@ -62,7 +61,7 @@ public:
 
 private:
     std::string buffer ="{";
-    bool firstMember = true;
+    
     std::string setMemberName(const std::string_view name){
         std::string member;
         if(buffer.size() == 1){
@@ -79,6 +78,6 @@ private:
         std::string data = buffer;
         data += setMemberName(memberName);
         data += value;
-        return JsonSerializer(data);
+        return {data};
     }
 };
