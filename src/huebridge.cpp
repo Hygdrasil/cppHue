@@ -99,22 +99,28 @@ BulbState HueBridge::getState(int bulbId, bool* succeeded){
     do{
         state.brightness = parser.longFromHeader( HueBridge::BRIGHTNESS_KEY, &working);
         if(!working){
-            break;
-        }
-        state.hue =  parser.longFromHeader(HueBridge::HUE_KEY, &working);
-        if(!working){
+            printf("h5\n");
             break;
         }
         state.isOn = parser.boolFromHeader(HueBridge::ON_KEY, &working);
         if(!working){
+            printf("h3\n");
             break;
         }
         state.isReachable = parser.boolFromHeader(HueBridge::REACHABLE_KEY, &working);
         if(!working){
+            printf("h2\n");
+            break;
+        }
+        // there are warm white bulbs so this value is not an error
+        state.hue =  parser.longFromHeader(HueBridge::HUE_KEY, &state.hasHue);
+        if(!state.hasHue)
+        {
             break;
         }
         state.saturation = parser.longFromHeader(HueBridge::SATURATION_KEY, &working);
         if(!working){
+            printf("h1\n");
             break;
         }
     }while(false);

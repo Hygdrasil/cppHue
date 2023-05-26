@@ -10,6 +10,7 @@ struct BulbState{
     int brightness;
     bool isOn;
     bool isReachable;
+    bool hasHue;
 };
 
 

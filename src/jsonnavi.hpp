@@ -61,7 +61,7 @@ public:
     }
 
     constexpr std::string_view jsonFromHeader(const std::string_view header) const{
-        const std::string_view contend= getContendStart(header);
+        const std::string_view contend = getContendStart(header);
         if(contend.empty()){
             return "";
         }
